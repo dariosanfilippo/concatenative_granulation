@@ -36,7 +36,7 @@ declare license "GPL v3.0 license";
 
 dl(del, in) = de.delay(size, del, in);
 grain(del, in) = de.fdelayltv(4, size, del, in);
-index = ba.period(size);
+index = ba.period(size + 1);
 lowpass(cf, x) =    +(x * a0) 
                     ~ *(b1)
 with {
@@ -84,13 +84,13 @@ grains_dl_zc(size) =    loop
             ((ba.sAndH(trigger(out), zc_index(position, in, out)) + 
                 shift(trigger(out))) -
                     ba.sAndH(trigger(out), corr(position, in, out)) : 
-                        wrap(0, size) ,
+                        wrap(0, size + 1) ,
             in : grain)
             with {
                 // PARAMETERS SETUP
                 pitch = ba.sAndH(trigger(out), pitch1);
                 rate = abs(rate1);
-                position = position1 : wrap(0, size);
+                position = position1 : wrap(0, size + 1);
                 // TRIGGER FUNCTION
                 trigger(y) =    loop
                                 ~ _
@@ -111,7 +111,7 @@ grains_dl_zc(size) =    loop
                 zc_index(recall, x, y) = 
                     index - 
                         ba.if(dir * diff(y) >= 0, zc_up, zc_down) : 
-                            wrap(0, size)
+                            wrap(0, size + 1)
                     with {
                         zc_up = recall , 
                                 ba.sAndH(store, index) : dl
@@ -151,7 +151,7 @@ asynch(x) = asynch_amount * lowpass(asynch_degree, x);
 asynch_amount = hslider("[6]Position self-modulation depth", 0, 0, 1, .001) ^ 
     2 * size * 16;
 asynch_degree = hslider("[7]Position self-modulation rate", .5, 0, 1, .001) ^ 4;
-pos(x) =    ((+(1 - t) : wrap(0, size)) 
+pos(x) =    ((+(1 - t) : wrap(0, size + 1)) 
             ~ _) + region + asynch(x);
 
 // =============================================================================
