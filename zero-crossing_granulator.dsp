@@ -53,9 +53,8 @@ diff(x) = x - x';
 div(x1, x2) = x1 / ba.if(  x2 < 0, 
                            min(ma.EPSILON * -1, x2), 
                            max(ma.EPSILON, x2));
-line_reset(rate, reset) =  (rate / ma.SR)' : 
-    (+ : *(1 - (reset != 0)))
-    ~ _;
+line_reset(rate, reset) =  rate / ma.SR :   (+ : *(1 - (reset != 0)))
+                                            ~ _;
 wrap(lower, upper, x) = (x - lower) / (upper - lower) : 
     ma.decimal : * (upper - lower) : + (lower);
 zc(x) = x * x' < 0;
