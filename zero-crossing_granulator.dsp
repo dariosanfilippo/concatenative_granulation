@@ -107,9 +107,8 @@ grains_dl_zc(size) =    loop
                                 ~ _
                     with {
                         loop(ready) =   
-                            zc(y) &
-                                (line_reset(ba.sAndH(1 - 1' + ready, rate), 
-                                    ready) >= 1);
+                            zc(y) & (line_reset(ba.sAndH(1 - 1' + ready, rate), 
+                                ready) >= 1);
                     };
                 // DIRECTION INVERSION
                 // This function keeps track of the sign of the pitch,
