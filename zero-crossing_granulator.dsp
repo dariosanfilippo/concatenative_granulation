@@ -56,8 +56,7 @@ grains_dl_zc(size) =    loop
                 shift(trigger(out))) -
                     ba.sAndH(trigger(out), corr(position, in, out)) : 
                         wrap(0, size) ,
-            in : grain) ,
-            trigger(out)
+            in : grain)
             with {
                 // PARAMETERS SETUP
                 pitch = ba.sAndH(trigger(out), pitch1);
