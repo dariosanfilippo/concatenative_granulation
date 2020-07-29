@@ -39,31 +39,30 @@ grain(del, in) = de.fdelayltv(4, size, del, in);
 index = ba.period(size + 1);
 lowpass(cf, x) =    +(x * a0) 
                     ~ *(b1)
-with {
-    a0 = 1 - b1;
-    b1 = exp(-cf * ma.PI);
-};
+    with {
+        a0 = 1 - b1;
+        b1 = exp(-cf * ma.PI);
+    };
 
 // =============================================================================
 //      MATH
 // =============================================================================
 
 diff(x) = x - x';
-//div(x1, x2) = ba.if(x2 == 0, 0, x1 / x2);
 div(x1, x2) = x1 / ba.if(  x2 < 0, 
                            min(ma.EPSILON * -1, x2), 
                            max(ma.EPSILON, x2));
-line_reset(rate, reset) =  rate / ma.SR :   (+ : *(1 - (reset != 0)))
-                                            ~ _;
-wrap(lower, upper, x) = (x - lower) / (upper - lower) : 
-    ma.decimal : * (upper - lower) : + (lower);
+line_reset(rate, reset) =   +(rate / ma.SR) * (1 - (reset != 0))
+                            ~ _;
+wrap(lower, upper, x) = ma.frac((x - lower) / (upper - lower)) * 
+    (upper - lower) + (lower);
 zc(x) = x * x' < 0;
 
 // =============================================================================
 //      BUFFER SIZE (samples)
 // =============================================================================
 
-size = 2^20;
+size = 2 ^ 20;
 
 // =============================================================================
 //      LIVE/LOOPED INPUT FUNCTION
@@ -113,25 +112,20 @@ grains_dl_zc(size) =    loop
                         ba.if(dir * diff(y) >= 0, zc_up, zc_down) : 
                             wrap(0, size + 1)
                     with {
-                        zc_up = recall , 
-                                ba.sAndH(store, index) : dl
+                        zc_up = dl(recall, ba.sAndH(store, index))
                             with {
-                                store = zc(x) ,
-                                        (diff(x) > 0) : &;
+                                store = zc(x) & (diff(x) > 0);
                             };
-                        zc_down =   recall , 
-                                    ba.sAndH(store, index) : dl
+                        zc_down = dl(recall, ba.sAndH(store, index))
                             with {
-                                store = zc(x) ,
-                                        (diff(x) < 0) : &;
+                                store = zc(x) & (diff(x) < 0);
                             };
                     };
                 // POSITION CORRECTION FUNCTION
                 corr(recall, x, y) = div(y_diff, x_diff) + ((dir - 1) / 2)
                     with {
                         y_diff = diff(y);
-                        x_diff =    zc_index(recall, x, y) , 
-                                    diff(x) : dl;
+                        x_diff = dl(zc_index(recall, x, y), diff(x));
                     };
             };
     };
