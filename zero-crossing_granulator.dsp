@@ -101,14 +101,15 @@ grains_dl_zc(size) =    loop
                 position = position1 : wrap(0, size + 1);
                 // TRIGGER FUNCTION
                 // This function is TRUE when the desired grain duration has
-                // passed and the output is at a zero-crossing.
+                // passed and the output of the granulator is at a 
+                // zero-crossing.
                 trigger(y) =    loop
                                 ~ _
                     with {
                         loop(ready) =   
-                            zc(y) ,
-                            line_reset(ba.sAndH(1 - 1' + ready, rate),
-                                ready) >= 1 : &;
+                            zc(y) &
+                                (line_reset(ba.sAndH(1 - 1' + ready, rate), 
+                                    ready) >= 1);
                     };
                 // DIRECTION INVERSION
                 // This function keeps track of the sign of the pitch,
