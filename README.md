@@ -7,7 +7,7 @@ The "Grain rate" parameter determines the number of sonic fragments per second o
 
 The "Pitch factor" parameter can be both positive or negative. Negative pitch factors result in reversed grains. It determines the playback speed of each grain.
 
-The "Pitch modulation" parameter creates an exponential curve in the delay shift, which in turn results in a pitch modulation for each grain. A constant pitch is given by a delay shift whose second derivative is zero. In this case, the parameter ranges from -1 to 1, mapped over the range fro 1/16 to 16, which is the exponent that shapes the line segment performing the delay shift. Positive values of the parameter result in a positive second derivative, or a function curving up creating a raising pitch. Negative values of the parameter behave in the opposite way.
+The "Pitch modulation" parameter creates an exponential curve in the delay shift, which in turn results in a pitch modulation for each grain. A constant pitch is given by a delay shift whose second derivative is zero. In this case, the parameter ranges from -1 to 1, mapped over the range from 1/16 to 16, which is the exponent that shapes the line segment performing the delay shift. Positive values of the parameter result in a positive second derivative, or a function curving up creating a raising pitch. Negative values of the parameter behave in the opposite way.
 
 The "Time factor" parameter determines the speed and direction for the exploration of the buffer. This parameter, provided that the position modulation parameters are inactive, is the time-stretching parameter. Particularly, when the parameter is zero, the algorithm operates as a looper or wavetable oscillator.
 

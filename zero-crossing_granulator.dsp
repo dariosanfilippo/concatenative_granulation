@@ -26,7 +26,8 @@ import("stdfaust.lib");
 
 declare name "Zero-Crossing-Synchronous Granulator";
 declare author "Dario Sanfilippo";
-declare copyright "Copyright (C) 2020 Dario Sanfilippo <sanfilippo.dario@gmail.com>";
+declare copyright "Copyright (C) 2020 Dario Sanfilippo 
+    <sanfilippo.dario@gmail.com>";
 declare version "1.00";
 declare license "GPL v3.0 license";
 
