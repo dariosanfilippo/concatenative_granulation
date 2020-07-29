@@ -79,6 +79,10 @@ grains_dl_zc(size) =    loop
                         ~ _
     with {
         // MAIN LOOP
+        // Here we define the main feedback mechanism. The algorithm needs
+        // to continuously inspect the output to trigger the next grain
+        // once a zero-crossing has occurred, after the desired grain
+        // duration has passed.
         loop(out, pitch1, rate1, position1, in) =
             ((ba.sAndH(trigger(out), zc_index(position, in, out)) + 
                 shift(trigger(out))) -
@@ -87,10 +91,16 @@ grains_dl_zc(size) =    loop
             in : grain)
             with {
                 // PARAMETERS SETUP
+                // Here we are making sure that parameters are locked to
+                // the trigger function. Currently, the trigger function
+                // and the rate parameter are mutually determining and this
+                // needs to be fixed.
                 pitch = ba.sAndH(trigger(out), pitch1);
                 rate = abs(rate1);
                 position = position1 : wrap(0, size + 1);
                 // TRIGGER FUNCTION
+                // This function is TRUE when the desired grain duration has
+                // passed and the output is at a zero-crossing.
                 trigger(y) =    loop
                                 ~ _
                     with {
@@ -100,13 +110,23 @@ grains_dl_zc(size) =    loop
                                 ready) >= 1 : &;
                     };
                 // DIRECTION INVERSION
+                // This function keeps track of the sign of the pitch,
+                // as the mechanism needs to be adjusted for reverse playback.
                 dir = ma.signum(pitch);
                 // READING HEAD FUNCTION
+                // This function calculates the delay modulation necessary to
+                // perform pitch transposition and pitch modulation.
                 shift(reset) = 
                     div((1 - pitch), rate) *
                         line_reset(ba.sAndH(reset, rate), reset) ^ 
                             p_mod * ma.SR;
                 // ZC POSITION FUNCTION
+                // Here we calculate the delay that we then sample-and-hold to
+                // recall a specific zero-crossing position. Particularly,
+                // we are storing in two different delay lines zero-crossing
+                // positions for positive and negative derivatives, so that
+                // the appropriate ones can be chosen to keep consistency at 
+                // grain junctions.
                 zc_index(recall, x, y) = 
                     index - 
                         ba.if(dir * diff(y) >= 0, zc_up, zc_down) : 
@@ -122,6 +142,11 @@ grains_dl_zc(size) =    loop
                             };
                     };
                 // POSITION CORRECTION FUNCTION
+                // Finally, we perform a correction for the position of 
+                // the next grain based on the ratio between the derivatives
+                // at the junction, so that we can keep continuity when
+                // transitioning from a grain with a high slope to a grain
+                // with a lower slope.
                 corr(recall, x, y) = div(y_diff, x_diff) + ((dir - 1) / 2)
                     with {
                         y_diff = diff(y);
