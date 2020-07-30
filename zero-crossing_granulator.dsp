@@ -50,6 +50,7 @@ lowpass(cf, x) =    +(x * a0)
 // =============================================================================
 
 diff(x) = x - x';
+diff2(x) = diff(x) - diff(x)';
 div(x1, x2) = x1 / ba.if(  x2 < 0, 
                            min(ma.EPSILON * -1, x2), 
                            max(ma.EPSILON, x2));
