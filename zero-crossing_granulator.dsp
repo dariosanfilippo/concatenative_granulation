@@ -129,18 +129,33 @@ grains_dl_zc(size) =    loop
                 // positions for positive and negative derivatives, so that
                 // the appropriate ones can be chosen to keep consistency at 
                 // grain junctions.
-                zc_index(recall, x, y) = 
-                    index - 
-                        ba.if(dir * diff(y) >= 0, zc_up, zc_down) : 
-                            wrap(0, size + 1)
+                zc_index(recall, x, y) = index - 
+                    ba.if((dir * diff(y) >= 0) & (dir * diff2(y) >= 0), 
+                        zc_pp,
+                        ba.if((dir * diff(y) >= 0) & (dir * diff2(y) < 0), 
+                            zc_pn,
+                            ba.if((dir * diff(y) < 0) & (dir * diff2(y) >= 0), 
+                                zc_np, zc_nn))) : wrap(0, size + 1)
                     with {
-                        zc_up = dl(recall, ba.sAndH(store, index))
+                        zc_pp = dl(recall, ba.sAndH(store, index))
                             with {
-                                store = zc(x) & (diff(x) > 0);
+                                store = 
+                                    zc(x) & (diff(x) >= 0) & (diff2(x) >= 0);
                             };
-                        zc_down = dl(recall, ba.sAndH(store, index))
+                        zc_pn = dl(recall, ba.sAndH(store, index))
                             with {
-                                store = zc(x) & (diff(x) < 0);
+                                store =
+                                    zc(x) & (diff(x) >= 0) & (diff2(x) < 0);
+                            };
+                        zc_np = dl(recall, ba.sAndH(store, index))
+                            with {
+                                store = 
+                                    zc(x) & (diff(x) < 0) & (diff2(x) >= 0);
+                            };
+                        zc_nn = dl(recall, ba.sAndH(store, index))
+                            with {
+                                store = 
+                                    zc(x) & (diff(x) < 0) & (diff2(x) < 0);
                             };
                     };
                 // POSITION CORRECTION FUNCTION
