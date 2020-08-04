@@ -124,8 +124,8 @@ grains_dl_zc(size) =    loop
                 // ZC POSITION FUNCTION
                 // Here we calculate the delay that we then sample-and-hold to
                 // recall a specific zero-crossing position. Particularly,
-                // we are storing in two different delay lines zero-crossing
-                // positions for positive and negative derivatives, so that
+                // we are storing zero-crossing positions for positive and 
+                // negative derivatives in two different delay lines, so that
                 // the appropriate ones can be chosen to keep consistency at 
                 // grain junctions.
                 zc_index(recall, x, y) = 
