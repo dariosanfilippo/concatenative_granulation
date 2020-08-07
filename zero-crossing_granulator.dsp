@@ -98,7 +98,7 @@ grains_dl_zc(size) =    loop
                 // and the rate parameter are mutually determining and this
                 // needs to be fixed.
                 pitch = ba.sAndH(trigger(out), pitch1);
-                rate = abs(rate1);
+                rate = ba.sAndH(trigger(out), abs(rate1));
                 position = position1 : wrap(0, size + 1);
                 // TRIGGER FUNCTION
                 // This function is TRUE when the desired grain duration has
@@ -107,8 +107,8 @@ grains_dl_zc(size) =    loop
                 trigger(y) =    loop
                                 ~ _
                     with {
-                        loop(ready) =   
-                            zc(y) & (line_reset(ba.sAndH(1 - 1' + ready, rate), 
+                        loop(ready) = zc(y) & 
+                            (line_reset(ba.sAndH(1 - 1' + ready, abs(rate1)), 
                                 ready) >= 1);
                     };
                 // DIRECTION INVERSION
