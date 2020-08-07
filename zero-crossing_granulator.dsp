@@ -84,21 +84,19 @@ grains_dl_zc(size) =    loop
         // to continuously inspect the output to trigger the next grain
         // once a zero-crossing has occurred, after the desired grain
         // duration has passed.
-        loop(out, pitch1, rate1, position1, in) =
-            ((ba.sAndH(trigger(out), zc_index(position, in, out)) + 
-                shift(trigger(out))) -
+        loop(out, pitch_0, rate_0, position_0, in) =
+            (ba.sAndH(trigger(out), zc_index(position, in, out)) + 
+                shift(trigger(out)) -
                     ba.sAndH(trigger(out), corr(position, in, out)) : 
-                        wrap(0, size + 1) ,
-            in : grain)
+                        wrap(0, size + 1)) ,
+            in : grain
             with {
                 // PARAMETERS SETUP
                 // Here we are making sure that parameters are locked to
-                // the trigger function. Currently, the trigger function
-                // and the rate parameter are mutually determining and this
-                // needs to be fixed.
-                pitch = ba.sAndH(trigger(out), pitch1);
-                rate = abs(rate1);
-                position = position1 : wrap(0, size + 1);
+                // the trigger function and within working ranges.
+                pitch = ba.sAndH(trigger(out), pitch_0);
+                rate = ba.sAndH(trigger(out), abs(rate_0));
+                position = wrap(0, size + 1, position_0);
                 // TRIGGER FUNCTION
                 // This function is TRUE when the desired grain duration has
                 // passed and the output of the granulator is at a 
@@ -106,8 +104,8 @@ grains_dl_zc(size) =    loop
                 trigger(y) =    loop
                                 ~ _
                     with {
-                        loop(ready) =   
-                            zc(y) & (line_reset(ba.sAndH(1 - 1' + ready, rate), 
+                        loop(ready) = zc(y) & 
+                            (line_reset(ba.sAndH(1 - 1' + ready, abs(rate_0)), 
                                 ready) >= 1);
                     };
                 // DIRECTION INVERSION
@@ -117,10 +115,9 @@ grains_dl_zc(size) =    loop
                 // READING HEAD FUNCTION
                 // This function calculates the delay modulation necessary to
                 // perform pitch transposition and pitch modulation.
-                shift(reset) = 
-                    div((1 - pitch), rate) *
-                        line_reset(ba.sAndH(reset, rate), reset) ^ 
-                            p_mod * ma.SR;
+                shift(reset) = div((1 - pitch), rate) *
+                    line_reset(ba.sAndH(reset, rate), reset) ^ 
+                        p_mod * ma.SR;
                 // ZC POSITION FUNCTION
                 // Here we calculate the delay that we then sample-and-hold to
                 // recall a specific zero-crossing position. Particularly,
@@ -128,10 +125,9 @@ grains_dl_zc(size) =    loop
                 // negative derivatives in two different delay lines, so that
                 // the appropriate ones can be chosen to keep consistency at 
                 // grain junctions.
-                zc_index(recall, x, y) = 
-                    index - 
-                        ba.if(dir * diff(y) >= 0, zc_up, zc_down) : 
-                            wrap(0, size + 1)
+                zc_index(recall, x, y) = index - 
+                    ba.if(dir * diff(y) >= 0, zc_up, zc_down) : 
+                        wrap(0, size + 1)
                     with {
                         zc_up = dl(recall, ba.sAndH(store, index))
                             with {
