@@ -28,7 +28,7 @@ declare name "Zero-Crossing-Synchronous Granulator";
 declare author "Dario Sanfilippo";
 declare copyright "Copyright (C) 2020 Dario Sanfilippo 
     <sanfilippo.dario@gmail.com>";
-declare version "1.00";
+declare version "0.30";
 declare license "GPL v3.0 license";
 
 // =============================================================================
@@ -123,9 +123,9 @@ grains_dl_zc(size) =    loop
                 // Here we calculate the delay that we then sample-and-hold to
                 // recall a specific zero-crossing position. Particularly,
                 // we are storing zero-crossing positions for positive and 
-                // negative derivatives in two different delay lines, so that
-                // the appropriate ones can be chosen to keep consistency at 
-                // grain junctions.
+                // negative first and secondderivatives in four different 
+                // delay lines, so that the appropriate ones can be chosen 
+                // to keep consistency at grain junctions.
                 zc_index(recall, x, y) = index - 
                     ba.if((dir * diff(y) >= 0) & (dir * diff2(y) >= 0), 
                         zc_pp,
@@ -192,4 +192,4 @@ pos(x) =    ((+(1 - t) : wrap(0, size + 1))
 // =============================================================================
 
 process(x) =    ((p, r, pos, input(x)) : grains_dl_zc(size)) 
-                ~ _ <: par(i, 2, *(vol));
+                ~ _ : *(vol);
