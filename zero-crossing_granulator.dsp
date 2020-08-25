@@ -1,25 +1,25 @@
 // =============================================================================
-// This paper presents preliminary results for the generation of continuous 
+// This algorithm presents preliminary results for the generation of continuous 
 // streams through zero-crossing-synchronous rectangular windowing of 
 // non-overlapping sonic fragments. The key feature offered by this design is 
-// multimodality: a system that can operate, depending on the parameters, 
-// as a looper, wavetable oscillator, or granulator.  At this stage of the 
-// development, the core mechanism that allows generating streams without 
-// discontinuities is the analysis at the zero-crossing points to guarantee 
-// first-order derivative continuity at the junction between fragments. 
-// The analysis of higher-order derivatives at the junction points is 
-// necessary to prevent distortions caused by concatenation. Since the 
-// author's primary investigation is the musical and formal outcome in 
-// deploying this technique, this implementation is a trade-off between 
-// accuracy and efficiency to favour CPU-lightness in real-time applications. 
-// A first-order derivative analysis is adequate to prevent audible clicks, 
-// while the concatenation artefacts can play a creative role in the musical 
-// domain, especially when generating rich spectra through granular 
-// processing. On the other hand, an advantage of this design is the absence 
-// of comb effects given by overlapping fragments in standard granular 
-// techniques. The paper provides a time-domain analysis of the system, 
-// a Faust implementation, as well as music and audio examples from the 
-// operating algorithm.
+// multimodality: a system that can operate, depending on the parameters, as a 
+// looper, wavetable oscillator, or granulator. At this stage of the 
+// development, the core mechanism that allows generating streams without major 
+// discontinuities is the analysis of first-order and second-order derivatives 
+// at the zero-crossing points of input and output signals. The analysis is 
+// necessary to guarantee continuity in the first-order and second-order 
+// derivative signs at the junction between fragments. The analysis of 
+// higher-order derivatives, as well as consistency in the magnitudes of 
+// low-order derivatives, is necessary to prevent distortions caused by 
+// concatenation. Although, since the author's primary investigation is the 
+// musical and formal outcome in deploying this technique, this implementation 
+// is a trade-off between accuracy and efficiency to favour CPU-lightness in 
+// real-time applications. A first-order and second-order derivative analysis 
+// is adequate to prevent audible clicks, while the concatenation artefacts 
+// can play a creative role in the musical domain, especially when generating 
+// rich spectra through granular processing. On the other hand, an advantage of 
+// this design is the absence of comb effects given by overlapping fragments 
+// in standard granular techniques.
 // =============================================================================
 
 import("stdfaust.lib");
