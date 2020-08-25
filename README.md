@@ -21,8 +21,8 @@ Lastly, the "Position self-modulation rate" lowpasses the output of the granulat
 
 For OSX:
 
-### faust2caqt -double zero-crossing_granulator.dsp
+>> faust2caqt -double zero-crossing_granulator.dsp
 
 For Linux through the Jack Server:
 
-### faust2jaqt -double zero-crossing_granulator.dsp
+>> faust2jaqt -double zero-crossing_granulator.dsp
