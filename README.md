@@ -1,4 +1,4 @@
-# zero-crossing_granulator
+# Zero-crossing-synchronous granulator
 Faust implementation of zero-crossing-synchronous rectangular windowing for continuous streams of non-overlapping sonic fragments. The main characteristic of the study is to provide a multi-modal system that, depending on the parameters, can operate as a click-free looper, wavetable oscillator, or granulator.
 
 The "Looped/Live" button switches between live and looped inputs. The granulator is looped if the button is unchecked, live otherwise.
@@ -16,3 +16,13 @@ The "Buffer region" parameter can be used to explore different regions of the bu
 The "Position self-modulation depth" sets the magnitude of the perturbation over the curve that determines the time factor. Specifically, the output amplitude of the system is sent back, expanded through this parameter, wrapped around, and summed to the time factor function. The nonlinear iteration process can be used to achieve chaotic beahviours.
 
 Lastly, the "Position self-modulation rate" lowpasses the output of the granulator before being processed in the position self-modulation depth parameter. By changing the rate of this signal, we can smoothly transition between correlated to uncorrelated positions in the buffer to move from time-stratching-like behaviours to sonic dusts.
+
+# Compilation
+
+For OSX:
+
+### faust2caqt -double zero-crossing_granulator.dsp
+
+For Linux through the Jack Server:
+
+### faust2jaqt -double zero-crossing_granulator.dsp
