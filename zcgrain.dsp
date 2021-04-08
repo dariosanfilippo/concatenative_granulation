@@ -93,7 +93,7 @@ grain2(len, pos, pitch, x) = loop ~ _ : ! , _
 
 grain3(len, pos, pitch, x) = loop ~ _ : ! , _
     with {
-        loop(y) = buffer2(offset + line, x) , interpolate(3, 6)
+        loop(y) = buffer2(offset + line, x) , interpolate(7, 16)
             with {
                 t = loop ~ _ // trigger function; condition: grain dur. passed AND output at a ZC
                     with {
@@ -103,17 +103,16 @@ grain3(len, pos, pitch, x) = loop ~ _ : ! , _
                 interpolate(N, P) = 
                     ba.if(  lline < 1, 
                             lagrangeN(N, int(N / 2) + lline, points), 
-                                    //par(i, (N + 1) / 2, ba.sAndH(t, y @ (-P / 2 - 1 - i)));
-                            buffer2(offset + line, x) @ hslider("del", 0, 0, P+1, 1))
+                            buffer2(offset + line, x) @ hslider("del", 0, 0, P + 1, 1))
                     with {
                         points = l_points , r_points
                             with {
                                 l_points = 
-                                    par(i, (N + 1) / 2, ba.sAndH(t, y @ (P / 2 + i)));
+                                    par(i, (N + 1) / 2, ba.sAndH(t, y @ (P / 2 + (N + 1) / 2 - 1 - i)));
                                 r_points = 
-                                    par(i, (N + 1) / 2, buffer2(offset + (P / 2 - 2 + i), x));
+                                    par(i, (N + 1) / 2, buffer2(offset + (P / 2 - 1 + i), x));
                             };
-                        lline = ((+(1 - t) : min(P)) ~ *(1 - t)) / (P);
+                        lline = ((+(1 - t) : min(P)) ~ *(1 - t)) / P;
                     };
                 offset = ba.sAndH(t, zc_sel + corr) // grain starting position
                     with {
