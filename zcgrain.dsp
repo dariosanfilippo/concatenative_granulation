@@ -66,7 +66,7 @@ grain2(len, pos, pitch, x) = loop ~ _ : ! , _
     with {
         loop(y) = buffer2(offset + line, x) , crossfade(N, buffer2(offset + line, x) @ N, buffer2(offset - N + line, x)) 
             with {
-                N = 32; // number of crossfading samples at the junction corresponding to the lookahead delay
+                N = hslider("xfade", 8, 8, 1024, 1); // number of crossfading samples at the junction corresponding to the lookahead delay
                 t = loop ~ _ // trigger function; condition: grain dur. passed AND output at a ZC
                     with {
                         loop(reset) = (fi.pole(1 - reset, 1) >= ba.sAndH(1 - 1' + reset, len)) & zc(y);
@@ -93,7 +93,7 @@ grain2(len, pos, pitch, x) = loop ~ _ : ! , _
 
 grain3(len, pos, pitch, x) = loop ~ _ : ! , _
     with {
-        loop(y) = buffer2(offset + line, x) , interpolate(7, 16)
+        loop(y) = buffer2(offset + line, x) , interpolate(5, 6)
             with {
                 t = loop ~ _ // trigger function; condition: grain dur. passed AND output at a ZC
                     with {
