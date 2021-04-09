@@ -37,26 +37,26 @@ grain1(len, pos, pitch, x) = loop ~ _
     with {
         loop(y) = buffer2(offset + line, x)
             with {
-                N = 16; // number of crossfading samples at the junction corresponding to the lookahead delay
                 t = loop ~ _ // trigger function; condition: grain dur. passed AND output at a ZC
                     with {
                         loop(reset) = (fi.pole(1 - reset, 1) >= ba.sAndH(1 - 1' + reset, len)) & zc(y);
                     };
                 line = fi.pole(1 - t, 1 - t) * pitch; // line function: from 0 to at least len - 1
-                crossfade(N, x1, x2) = x1 * (1 - line) + x2 * line
-                    with {
-                        line = ((+(1 - t) : min(N - 1)) ~ *(1 - t)) / (N - 1);
-                    };
                 offset = ba.sAndH(t, zc_sel + corr) // grain starting position
                     with {
-                        zc_sel = ba.if(diff(y) > 0, zc_up(pos, x), zc_down(pos, x));
+                        dir = ma.signum(pitch);
+                        zc_sel = ba.if(diff(y) * dir > 0, zc_up(pos, x), zc_down(pos, x));
                         zc_up(read, x) = buffer1(read, ba.sAndH(zc(x) & up(x), index)); // buffer containing ZC position of positive slopes
                         zc_down(read, x) = buffer1(read, ba.sAndH(zc(x) & down(x), index)); // buffer containing ZC position of negative slopes
-                        //corr = y / safe_den(buffer(zc_sel, x));
-                        corr = diff(y) / safe_den(xslope(zc_sel, x)); // possible correction for varying slopes
-                        //corr = 1; // basic correction to avoid zero-order hold at the junction
-                        xslope(read, x) = buffer1(read, diff(x)); // buffer containing the first derivative of the input signal
-                        safe_den(den) = ba.if(den < 0, min(0 - ma.EPSILON, den), max(ma.EPSILON, den));
+                        corr = y_diff / safe_den(x_diff) + (dir - 1) / 2// correction for zero-order continuity
+                            with {
+                                y_diff = diff(y);
+                                x_diff =xslope(zc_sel, x);
+                                xslope(read, x) = buffer1(read, diff(x)); // buffer containing the first derivative of the input signal
+                                safe_den(den) = ba.if(  den < 0, 
+                                                        min(0 - ma.EPSILON, den), 
+                                                        max(ma.EPSILON, den));
+                            };
                     };
                 
             };
@@ -64,7 +64,7 @@ grain1(len, pos, pitch, x) = loop ~ _
 
 grain2(len, pos, pitch, x) = loop ~ _ : ! , _
     with {
-        loop(y) = buffer2(offset + line, x) , crossfade(N, buffer2(offset + line, x) @ N, buffer2(offset - N + line, x)) 
+        loop(y) = buffer2(offset + line, x) , crossfade(N, buffer2(offset + line, x) @ (N), buffer2(offset - (N) + line, x)) 
             with {
                 N = hslider("xfade", 8, 8, 1024, 1); // number of crossfading samples at the junction corresponding to the lookahead delay
                 t = loop ~ _ // trigger function; condition: grain dur. passed AND output at a ZC
@@ -93,7 +93,7 @@ grain2(len, pos, pitch, x) = loop ~ _ : ! , _
 
 grain3(len, pos, pitch, x) = loop ~ _ : ! , _
     with {
-        loop(y) = buffer2(offset + line, x) , interpolate(5, 6)
+        loop(y) = buffer2(offset + line, x) , interpolate(9, 4)
             with {
                 t = loop ~ _ // trigger function; condition: grain dur. passed AND output at a ZC
                     with {
@@ -108,11 +108,11 @@ grain3(len, pos, pitch, x) = loop ~ _ : ! , _
                         points = l_points , r_points
                             with {
                                 l_points = 
-                                    par(i, (N + 1) / 2, ba.sAndH(t, y @ (P / 2 + (N + 1) / 2 - 1 - i)));
+                                    par(i, (N + 1) / 2, ba.sAndH(t, y @ ((N + 1) / 2 - 1 - i)));
                                 r_points = 
-                                    par(i, (N + 1) / 2, buffer2(offset + (P / 2 - 1 + i), x));
+                                    par(i, (N + 1) / 2, buffer2(offset + P + i, x));
                             };
-                        lline = ((+(1 - t) : min(P)) ~ *(1 - t)) / P;
+                        lline = ((+(1) : min(P + 1)) ~ *(1 - t)) / (P + 1);
                     };
                 offset = ba.sAndH(t, zc_sel + corr) // grain starting position
                     with {
@@ -130,7 +130,7 @@ grain3(len, pos, pitch, x) = loop ~ _ : ! , _
 //in = os.osc(2001 + os.osc(1000) * 1000);
 in = os.osc(2001);
 pos = no.noise * hslider("rand", 0, 0, 192000, 1) + hslider("pos", 0, 0, 192000, 1);
-pitch = hslider("pitch", 1, 0, 16, .001);
+pitch = hslider("pitch", 1, -16, 16, .001);
 //pos = hslider("pos", 0, 0, size, 1);
 len = hslider("len", 100, 0, 19200, 1); // it should be more or equal to the length of the crossfade
 pan = hslider("pan", 0, 0, 1, .001);
