@@ -72,7 +72,8 @@ grains(len, pos, pitch, x) =    loop ~
                                     grain)
                     with {
                         N = 5;
-                        L = 16;
+                        //L = 16;
+                        L = hslider("L", 16, 4, 64, 1);
                         halfp = (N + 1) / 2;
                         x_vals = par(i, N + 1, (i - halfp) * 
                             (i < halfp) + (i + L - halfp) * (i >= halfp));
@@ -84,7 +85,7 @@ grains(len, pos, pitch, x) =    loop ~
                                         ba.sAndH(t, y @ (halfp - 1 - i)));
                                 r_points = 
                                     par(i, halfp, 
-                                        fbuffer(offset + (L + i) * pitch_sah, x));
+                                        ba.sAndH(t, fbuffer(offset + (L + i) * pitch_sah, x)));
                             };
                         lline = ((+(1 - t) : min(L)) ~ 
                                 *(1 - t));
