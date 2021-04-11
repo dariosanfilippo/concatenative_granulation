@@ -85,7 +85,7 @@ grains(len, pos, pitch, x) =    loop ~
                                         ba.sAndH(t, y @ (halfp - 1 - i)));
                                 r_points = 
                                     par(i, halfp, 
-                                        ba.sAndH(t, fbuffer(offset + (L + i) * pitch_sah, x)));
+                                        fbuffer(offset + (L + i) * pitch_sah, x));
                             };
                         lline = ((+(1 - t) : min(L)) ~ 
                                 *(1 - t));
@@ -102,7 +102,7 @@ pitch = hslider("pitch", 1, -16, 16, .001);
 len = hslider("len", 100, 0, 192000, 1); 
 vol1 = hslider("vol1", 0, 0, 1, .001);
 
-process = grains(len, pos, pitch, in1) : *(vol1) , *(vol1)
+process(x) = grains(len, pos, pitch, in) : *(vol1) , *(vol1)
     with {
         in = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r));
         r = checkbox("rec");
