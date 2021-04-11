@@ -102,12 +102,13 @@ grain2(len, pos, pitch, x) = loop ~ _ : ! , _
             };
     };
 
-grain3(len, pos, pitch, x) =    loop ~ 
+grains(len, pos, pitch, x) =    loop ~ 
                                 _ : _ , 
                                     _
     with {
-        loop(y) = buffer2(offset + line, x) , interpolate(5, 32)
+        loop(y) = grain , interpolate(5, 16)
             with {
+                grain = buffer2(offset + line, x);
                 t = loop ~ 
                     _ 
                     with {
@@ -115,10 +116,31 @@ grain3(len, pos, pitch, x) =    loop ~
                             (fi.pole(1 - reset, 1) >= 
                                 ba.sAndH(1 - 1' + reset, len)) & zc(y);
                     };
-                line = fi.pole(1 - t, 1 - t) * pitch; 
+                pitch_sah = ba.sAndH(t, pitch);
+                line = fi.pole(1 - t, 1 - t) * pitch_sah; 
+                offset = ba.sAndH(t, zc_sel + corr) 
+                    with {
+                        dir = ma.signum(pitch_sah);
+                        zc_sel =    ba.if(  diff(y) * dir > 0, 
+                                            zc_up(pos, x), 
+                                            zc_down(pos, x));
+                        zc_up(read, x) = 
+                            buffer1(read, ba.sAndH(zc(x) & up(x), index)); 
+                        zc_down(read, x) = 
+                            buffer1(read, ba.sAndH(zc(x) & down(x), index)); 
+                        corr = y_diff / safe_den(x_diff) + (dir - 1) / 2
+                            with {
+                                y_diff = diff(y);
+                                x_diff = buffer1(zc_sel, diff(x));
+                                safe_den(den) = ba.if(  den < 0,
+                                                        min(0 - ma.EPSILON, den),
+                                                        max(ma.EPSILON, den));
+                            };
+
+                    };
                 interpolate(N, P) = ba.if(  lline < P, 
                                             lagrangeN(N, x_vals, lline, y_vals), 
-                                            buffer2(offset + line, x))
+                                            grain)
                     with {
                         x_vals = par(i, N + 1, (i - (N + 1) / 2) * 
                             (i < (N + 1) / 2) + (i + P - (N + 1) / 2) * 
@@ -131,27 +153,12 @@ grain3(len, pos, pitch, x) =    loop ~
                                         ba.sAndH(t, y @ ((N + 1) / 2 - 1 - i)));
                                 r_points = 
                                     par(i, (N + 1) / 2, 
-                                        buffer2(offset + P + i, x));
+                                        buffer2(offset + (P + i) * pitch_sah, x));
                             };
                         lline = ((+(1 - t) : min(P)) ~ 
                                 *(1 - t));
                     };
-                offset = ba.sAndH(t, zc_sel + corr) 
-                    with {
-                        zc_sel =    ba.if(  diff(y) > 0, 
-                                            zc_up(pos, x), 
-                                            zc_down(pos, x));
-                        zc_up(read, x) = 
-                            buffer1(read, ba.sAndH(zc(x) & up(x), index)); 
-                        zc_down(read, x) = 
-                            buffer1(read, ba.sAndH(zc(x) & down(x), index)); 
-                        corr = diff(y) / safe_den(xslope(zc_sel, x)); 
-                        xslope(read, x) = buffer1(read, diff(x)); 
-                        safe_den(den) = ba.if(  den < 0, 
-                                                min(0 - ma.EPSILON, den), 
-                                                max(ma.EPSILON, den));
-                    };
-
+                
             };
     };
 
@@ -163,13 +170,12 @@ vol1 = hslider("vol1", 0, 0, 1, .001);
 vol2 = hslider("vol2", 0, 0, 1, .001);
 vol3 = hslider("vol3", 0, 0, 1, .001);
 
-process = grain3(len, pos, pitch, in);
+// process = grain3(len, pos, pitch, in);
 
-// process(x) =    grain1(len, pos, pitch, in) * vol1 , 
-//                 grain1(len, pos, pitch, in) * vol1 
-//                 //grain2(len, pos, pitch, in) * vol2 ,
-//                 //grain3(len, pos, pitch, in) * vol3
-//     with {
-//         in = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r));
-//         r = checkbox("rec");
-//     };
+process(x) =    //grain1(len, pos, pitch, in) * vol1 , 
+                //grain1(len, pos, pitch, in) * vol1 
+                grains(len, pos, pitch, in) : *(vol1) , *(vol1)
+    with {
+        in = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r));
+        r = checkbox("rec");
+    };
