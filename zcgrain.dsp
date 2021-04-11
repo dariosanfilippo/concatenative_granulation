@@ -93,7 +93,7 @@ grains(len, pos, pitch, x) =    loop ~
             };
     };
 
-in = os.osc(1000);
+in1 = os.osc(hslider("sine freq", 1000, 0, 20000, .001));
 size = 192000; // buffer size in samples
 index = ba.period(size); // writing pointer
 pos = no.noise * hslider("rand", size, 0, size, 1) + hslider("pos", 0, 0, size, 1);
@@ -101,7 +101,7 @@ pitch = hslider("pitch", 1, -16, 16, .001);
 len = hslider("len", 100, 0, 192000, 1); 
 vol1 = hslider("vol1", 0, 0, 1, .001);
 
-process(x) = grains(len, pos, pitch, in) : *(vol1) , *(vol1)
+process = grains(len, pos, pitch, in1) : *(vol1) , *(vol1)
     with {
         in = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r));
         r = checkbox("rec");
