@@ -24,18 +24,14 @@ frwtable(N, S, init, w_idx, x, r_idx) =
         i_idx = int(r_idx);
     };
 
-ibuffer(r_idx, x) = rwtable(size, .0, index, x, int(ma.modulo(r_idx, size))); 
-fbuffer(r_idx, x) = frwtable(N, size, .0, index, x, r_idx)
-    with {
-        N = 5; 
-    };
+ibuffer(r_idx, x) = rwtable(size, .0, W_idx, x, int(ma.modulo(r_idx, size))); 
+fbuffer(r_idx, x) = frwtable(5, size, .0, W_idx, x, r_idx);
 
-grains(len, pos, pitch, x) =    loop ~ 
-                                _ : _ , 
+grains(pos_0, dur_0, ptc_0, x_0) =  loop ~ 
                                     _
     with {
         loop(y) =   grain , 
-                    interpolate
+                    lagrain
             with {
                 grain = fbuffer(offset + line, x);
                 t = loop ~ 
@@ -43,20 +39,29 @@ grains(len, pos, pitch, x) =    loop ~
                     with {
                         loop(reset) = 
                             (fi.pole(1 - reset, 1) >= 
-                                ba.sAndH(1 - 1' + reset, len)) & zc(y);
+                                ba.sAndH(1 - 1' + reset, dur)) & zc(y);
                     };
-                pitch_sah = ba.sAndH(t, pitch);
-                line = fi.pole(1 - t, 1 - t) * pitch_sah; 
+                pos = pos_0 * ma.SR;
+                dur = dur_0 * ma.SR;
+                ptc = ba.sAndH(1 - 1' + t, ba.if(   ptc_0 < 0, 
+                                                    min(-1 / 16, ptc_0), 
+                                                    max(1 / 16, ptc_0)));
+                x = +(r * x_0) ~ 
+                    (de.delay(size - 1, size - 1) * (1 - r))
+                    with {
+                        r = checkbox("[00]Write on buffer");
+                    };
+                line = fi.pole(1 - t, 1 - t) * ptc; 
                 offset = ba.sAndH(t, zc_sel + corr) 
                     with {
-                        dir = ma.signum(pitch_sah);
-                        zc_sel =    ba.if(  diff(y) * dir > 0, 
-                                            zc_up(pos, x), 
-                                            zc_down(pos, x));
+                        dir = ma.signum(ptc);
+                        zc_sel = ba.if( diff(y) * dir > 0, 
+                                        zc_up(pos, x), 
+                                        zc_down(pos, x));
                         zc_up(read, x) = 
-                            ibuffer(read, ba.sAndH(zc(x) & up(x), index)); 
+                            ibuffer(read, ba.sAndH(zc(x) & up(x), W_idx)); 
                         zc_down(read, x) = 
-                            ibuffer(read, ba.sAndH(zc(x) & down(x), index)); 
+                            ibuffer(read, ba.sAndH(zc(x) & down(x), W_idx)); 
                         corr = y_diff / safe_den(x_diff) + (dir - 1) / 2
                             with {
                                 y_diff = diff(y);
@@ -65,11 +70,10 @@ grains(len, pos, pitch, x) =    loop ~
                                                         min(0 - ma.EPSILON, den),
                                                         max(ma.EPSILON, den));
                             };
-
                     };
-                interpolate = ba.if(lline < L, 
-                                    lagrangeN(N, x_vals, lline, y_vals), 
-                                    grain)
+                lagrain = ba.if(idx < L, 
+                                lagrangeN(N, x_vals, idx, y_vals), 
+                                grain)
                     with {
                         N = 5;
                         L = 16;
@@ -84,28 +88,26 @@ grains(len, pos, pitch, x) =    loop ~
                                         ba.sAndH(t, y @ (halfp - 1 - i)));
                                 r_points = 
                                     par(i, halfp, 
-                                        fbuffer(offset + (L + i) * pitch_sah, x));
+                                        fbuffer(offset + (L + i) * ptc, x));
                             };
-                        lline = ((+(1 - t) : min(L)) ~ 
-                                *(1 - t));
+                        idx =   min(L, +(1 - t)) ~ 
+                                *(1 - t);
                     };
-                
             };
     };
 
-in = os.osc(1000);
-size = 192000; // buffer size in samples
-index = ba.period(size); // writing pointer
-pos = no.noise * hslider("rand", size, 0, size, 1) + hslider("pos", 0, 0, size, 1);
-pitch = hslider("pitch", 1, -16, 16, .001);
-len = hslider("len", 100, 0, 192000, 1); 
-vol1 = hslider("vol1", 0, 0, 1, .001);
+//in = os.osc(1000);
+secs = 5; // buffer size in seconds
+SR = 192000;
+size = SR * secs; // buffer size in samples
+W_idx = ba.period(size); // writing pointer
+position = no.noise * hslider("[01]Position jitter", secs, 0, secs, .000001) + hslider("Buffer position (secs)", 0, 0, secs, .000001);
+duration = hslider("[02]Grain duration (secs)", .1, 0, secs, .000001); 
+pitch = hslider("[03]Grain pitch (factor)", 1, -16, 16, .000001);
+vol1 = hslider("[04]Output volume (linear)", 0, 0, 1, .000001);
 
-process(x) = grains(len, pos, pitch, in) : *(vol1) , *(vol1)
-    with {
-        in = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r));
-        r = checkbox("rec");
-    };
+process(in) = grains(position, duration, pitch, in) : *(vol1) , 
+                                                    *(vol1);
 
 // grain1(len, pos, pitch, x) = loop ~ _
 //     with {
