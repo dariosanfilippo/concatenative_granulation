@@ -25,17 +25,12 @@ frwtable(N, S, init, w_idx, x, r_idx) =
     };
 
 ibuffer(r_idx, x) = rwtable(size, .0, index, x, int(ma.modulo(r_idx, size))); 
-fbuffer(r_idx, x) = frwtable(N, size, .0, index, x, r_idx)
-    with {
-        N = 5; 
-    };
+fbuffer(r_idx, x) = frwtable(5, size, .0, index, x, r_idx);
 
-grains(len, pos, pitch, x) =    loop ~ 
-                                _ : _ , 
-                                    _
+CGP(len, pos, pitch, x) =   loop ~ 
+                            _ 
     with {
-        loop(y) =   grain , 
-                    interpolate
+        loop(y) = grain , interpolate , t
             with {
                 grain = fbuffer(offset + line, x);
                 t = loop ~ 
@@ -45,7 +40,7 @@ grains(len, pos, pitch, x) =    loop ~
                             (fi.pole(1 - reset, 1) >= 
                                 ba.sAndH(1 - 1' + reset, len)) & zc(y);
                     };
-                pitch_sah = ba.sAndH(t, pitch);
+                pitch_sah = ba.sAndH(1 - 1' + t, pitch);
                 line = fi.pole(1 - t, 1 - t) * pitch_sah; 
                 offset = ba.sAndH(t, zc_sel + corr) 
                     with {
@@ -87,26 +82,35 @@ grains(len, pos, pitch, x) =    loop ~
                                     par(i, halfp, 
                                         fbuffer(offset + (L + i) * pitch_sah, x));
                             };
-                        lline = ((+(1 - t) : min(L)) ~ 
+                        lline = min(L, (+(1 - t)) ~ 
                                 *(1 - t));
                     };
                 
             };
     };
 
-in1 = os.osc(hslider("sine freq", 1000, 0, 20000, .001));
-size = 192000; // buffer size in samples
+sinwaveform(tablesize) = 
+    sin(float(ba.period(tablesize)) * (2.0 * ma.PI) / float(tablesize));
+size = 192000 * 5; 
 index = ba.period(size); // writing pointer
-pos = no.noise * hslider("rand", size, 0, size, 1) + hslider("pos", 0, 0, size, 1);
-pitch = hslider("pitch", 1, -16, 16, .001);
+pos = no.noise * size;
+//pos = no.noise * hslider("pos_rand", size, 0, size, 1) + 
+//    hslider("pos", 0, 0, size, 1) + os.phasor(size, hslider("time", 1, -16, 16, .000001));
+pitch = hslider("pitch", 1, -16, 16, .001) + no.noise * 
+    hslider("ptc_rand", 0, -16, 16, 1) <: ba.if(<(0), min(-1/16), max(1/16));
 len = hslider("len", 100, 0, 192000, 1); 
 vol1 = hslider("vol1", 0, 0, 1, .001);
-
-process(x) = grains(len, pos, pitch, in) : *(vol1) , *(vol1)
+in1 = os.osc(1000); 
+mic(x) = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r)) * in_sel
     with {
-        in = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r));
         r = checkbox("rec");
     };
+in_sel = checkbox("in_sel");
+process = CGP(len, pos, pitch, in1) : *(vol1) , *(vol1) , *(vol1);
+//    with {
+//        in = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r));
+//        r = checkbox("rec");
+//    };
 
 // grain1(len, pos, pitch, x) = loop ~ _
 //     with {
