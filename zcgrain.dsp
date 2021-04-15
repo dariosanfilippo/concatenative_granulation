@@ -1,10 +1,5 @@
 import("stdfaust.lib");
 
-zc(x) = x * x' < 0; 
-up(x) = diff(x) > 0; 
-down(x) = diff(x) < 0; 
-diff(x) = x - x'; 
-
 lagrange_h(N, x_vals, idx) = par(n, N + 1, prod(k, N + 1, f(n, k)))
     with {
         vals(i) = ba.take(i + 1, x_vals);
@@ -27,10 +22,15 @@ frwtable(N, S, init, w_idx, x, r_idx) =
 ibuffer(r_idx, x) = rwtable(size, .0, index, x, int(ma.modulo(r_idx, size))); 
 fbuffer(r_idx, x) = frwtable(5, size, .0, index, x, r_idx);
 
+zc(x) = x * x' < 0; 
+up(x) = diff(x) > 0; 
+down(x) = diff(x) < 0; 
+diff(x) = x - x'; 
+
 CGP(len, pos, pitch, x) =   loop ~ 
                             _ 
     with {
-        loop(y) = grain , interpolate , t
+        loop(y) = grain , Lgrain , t
             with {
                 grain = fbuffer(offset + line, x);
                 t = loop ~ 
@@ -62,12 +62,11 @@ CGP(len, pos, pitch, x) =   loop ~
                             };
 
                     };
-                interpolate = ba.if(lline < L, 
-                                    lagrangeN(N, x_vals, lline, y_vals), 
-                                    grain)
+                Lgrain = ba.if( lline < L, 
+                                lagrangeN(N, x_vals, lline, y_vals), 
+                                grain)
                     with {
                         N = 5;
-                        //L = 16;
                         L = hslider("L", 16, 4, 64, 1);
                         halfp = (N + 1) / 2;
                         x_vals = par(i, N + 1, (i - halfp) * 
@@ -89,13 +88,9 @@ CGP(len, pos, pitch, x) =   loop ~
             };
     };
 
-sinwaveform(tablesize) = 
-    sin(float(ba.period(tablesize)) * (2.0 * ma.PI) / float(tablesize));
 size = 192000 * 5; 
-index = ba.period(size); // writing pointer
+index = ba.period(size);
 pos = no.noise * size;
-//pos = no.noise * hslider("pos_rand", size, 0, size, 1) + 
-//    hslider("pos", 0, 0, size, 1) + os.phasor(size, hslider("time", 1, -16, 16, .000001));
 pitch = hslider("pitch", 1, -16, 16, .001) + no.noise * 
     hslider("ptc_rand", 0, -16, 16, 1) <: ba.if(<(0), min(-1/16), max(1/16));
 len = hslider("len", 100, 0, 192000, 1); 
@@ -107,67 +102,4 @@ mic(x) = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r)) * in_sel
     };
 in_sel = checkbox("in_sel");
 process = CGP(len, pos, pitch, in1) : *(vol1) , *(vol1) , *(vol1);
-//    with {
-//        in = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r));
-//        r = checkbox("rec");
-//    };
-
-// grain1(len, pos, pitch, x) = loop ~ _
-//     with {
-//         loop(y) = buffer2(offset + line, x)
-//             with {
-//                 t = loop ~ _ // trigger function; condition: grain dur. passed AND output at a ZC
-//                     with {
-//                         loop(reset) = (fi.pole(1 - reset, 1) >= ba.sAndH(1 - 1' + reset, len)) & zc(y);
-//                     };
-//                 pitch_sel = ba.sAndH(t, ba.if(checkbox("ada"), corr, pitch));
-//                 line = fi.pole(1 - t, 1 - t) * pitch_sel; // line function: from 0 to at least len - 1
-//                 offset = ba.sAndH(t, zc_sel + corr); // grain starting position
-//                 //    with {
-//                         dir = ma.signum(pitch);
-//                         zc_sel = ba.if(diff(y) * dir > 0, zc_up(pos, x), zc_down(pos, x));
-//                         //zc_slopes_up(N, read, x) = 
-//                         zc_up(read, x) = buffer1(read, ba.sAndH(zc(x) & up(x), index)); // buffer containing ZC position of positive slopes
-//                         zc_down(read, x) = buffer1(read, ba.sAndH(zc(x) & down(x), index)); // buffer containing ZC position of negative slopes
-//                         corr = y_diff / safe_den(x_diff) + (dir - 1) / 2 : inspect(0, -1000, 1000) // correction for zero-order continuity
-//                             with {
-//                                 y_diff = diff(y);
-//                                 x_diff = buffer1(zc_sel, diff(x)); // buffer containing the first derivative of the input signal
-//                                 safe_den(den) = ba.if(  den < 0, 
-//                                                         min(0 - ma.EPSILON, den), 
-//                                                         max(ma.EPSILON, den));
-//                             };
-//                   //  };
-//                 
-//             };
-//     };
-// 
-// grain2(len, pos, pitch, x) = loop ~ _ : ! , _
-//     with {
-//         loop(y) = buffer2(offset + line, x) , crossfade(N, buffer2(offset + line, x) @ (N), buffer2(offset - (N) + line, x)) 
-//             with {
-//                 N = hslider("xfade", 8, 8, 1024, 1); // number of crossfading samples at the junction corresponding to the lookahead delay
-//                 t = loop ~ _ // trigger function; condition: grain dur. passed AND output at a ZC
-//                     with {
-//                         loop(reset) = (fi.pole(1 - reset, 1) >= ba.sAndH(1 - 1' + reset, len)) & zc(y);
-//                     };
-//                 line = fi.pole(1 - t, 1 - t) * pitch; // line function: from 0 to at least len - 1
-//                 crossfade(N, x1, x2) = x1 * (1 - line) + x2 * line
-//                     with {
-//                         line = ((+(1 - t) : min(N - 1)) ~ *(1 - t)) / (N - 1);
-//                     };
-//                 offset = ba.sAndH(t, zc_sel + corr) // grain starting position
-//                     with {
-//                         zc_sel = ba.if(diff(y) > 0, zc_up(pos, x), zc_down(pos, x));
-//                         zc_up(read, x) = buffer1(read, ba.sAndH(zc(x) & up(x), index)); // buffer containing ZC position of positive slopes
-//                         zc_down(read, x) = buffer1(read, ba.sAndH(zc(x) & down(x), index)); // buffer containing ZC position of negative slopes
-//                         //corr = y / safe_den(buffer(zc_sel, x));
-//                         corr = diff(y) / safe_den(xslope(zc_sel, x)); // possible correction for varying slopes
-//                         //corr = 1; // basic correction to avoid zero-order hold at the junction
-//                         xslope(read, x) = buffer1(read, diff(x)); // buffer containing the first derivative of the input signal
-//                         safe_den(den) = ba.if(den < 0, min(0 - ma.EPSILON, den), max(ma.EPSILON, den));
-//                     };
-// 
-//             };
-//     };
 
