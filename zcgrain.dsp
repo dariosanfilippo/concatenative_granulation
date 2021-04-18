@@ -27,10 +27,16 @@ up(x) = diff(x) > 0;
 down(x) = diff(x) < 0; 
 diff(x) = x - x'; 
 
-CGP(len, pos, pitch, x) =   loop ~ 
-                            _ 
+lp1p(cf, x) = fi.pole(b, x * (1 - b))
     with {
-        loop(y) = grain , Lgrain , t
+        b = exp(ma.PI * -cf);
+    };
+
+CGP(len, pos, pitch, x) =   loop ~ 
+                            _ : ! , 
+                                _
+    with {
+        loop(y) = grain , Lgrain
             with {
                 grain = fbuffer(offset + line, x);
                 t = loop ~ 
@@ -67,7 +73,7 @@ CGP(len, pos, pitch, x) =   loop ~
                                 grain)
                     with {
                         N = 5;
-                        L = hslider("L", 16, 4, 64, 1);
+                        L = int(hslider("Interpolation length (samples)", 16, 4, 64, 1));
                         halfp = (N + 1) / 2;
                         x_vals = par(i, N + 1, (i - halfp) * 
                             (i < halfp) + (i + L - halfp) * (i >= halfp));
@@ -88,18 +94,38 @@ CGP(len, pos, pitch, x) =   loop ~
             };
     };
 
-size = 192000 * 5; 
+size = 192000 * 10; 
 index = ba.period(size);
-pos = no.noise * size;
-pitch = hslider("pitch", 1, -16, 16, .001) + no.noise * 
-    hslider("ptc_rand", 0, -16, 16, 1) <: ba.if(<(0), min(-1/16), max(1/16));
-len = hslider("len", 100, 0, 192000, 1); 
-vol1 = hslider("vol1", 0, 0, 1, .001);
-in1 = os.osc(1000); 
-mic(x) = +(r * x) ~ (de.delay(size - 1, size - 1) * (1 - r)) * in_sel
+
+len = hslider("[01]Grain length (s)", .1, .001, 1, .000001) * ma.SR; 
+buff_pos = hslider("[02]Buffer position (s)", 0, 0, 10, .000001) * ma.SR;
+t_fact = hslider("[03]Time transposition", 1, -16, 16, .000001) * 
+    (ma.SR / size);
+t_cf = hslider("[04]Time async degree", 0, 0, 1, .000001);
+t_depth = hslider("[05]Time async depth", 0, 0, size, .000001);
+p_fact = hslider("[05]Pitch transposition", 1, -16, 16, .000001);
+p_cf = hslider("[07]Pitch async degree", 0, 0, 1, .000001);
+p_depth = hslider("[08]Pitch async depth", 0, 0, 1000, .000001);
+r = checkbox("[09]Freeze buffer");
+vol = hslider("[10]Volume", 0, 0, 1, .000001);
+
+pos(x) = os.phasor(size, t_fact) + buff_pos + pos_async
     with {
-        r = checkbox("rec");
+        pos_async = lp1p(t_cf, x) * t_depth;
     };
-in_sel = checkbox("in_sel");
-process = CGP(len, pos, pitch, in1) : *(vol1) , *(vol1) , *(vol1);
+
+ptc(x) = p_fact + ptc_async <: 
+    ba.if(<(0), max(-16, min(-1 / 16)), min(16, max(1 / 16)))
+    with {
+        ptc_async = lp1p(p_cf, x) * p_depth;
+    };
+
+input(x) = +(x * (1 - r)) ~ (de.delay(size - 1, size - 1) * r);
+
+process(x1, x2) =   (loop1 ~ _) * vol , 
+                    (loop2 ~ _) * vol
+    with {
+        loop1(fb) = CGP(len, pos(fb), ptc(fb), input(x1));
+        loop2(fb) = CGP(len, pos(fb), ptc(fb), input(x2));
+    };
 
