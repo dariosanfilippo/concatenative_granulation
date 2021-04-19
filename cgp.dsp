@@ -1,15 +1,49 @@
+// =============================================================================
+//      Live concatenative granular processing
+// =============================================================================
+//
+// This software implements non-overlapping granulation with rectangular 
+// windowing, i.e., concatenative granular processing live.
+//
+// The main concerns with concatenative granulation are the artefacts due to
+// the interconnection of uncorrelated sonic fragments, which  result in signal
+// discontinuities. 
+//
+// Reducing low-order derivatives discontinuities is key to drastically reduce
+// artefacts. This technique deploys zeroth and first-order derivative
+// analysis with Lagrange polynomoials for a smooth transition between grains.
+//
+// Copyright (C) Dario Sanfilippo 2021.
+// 
+// For feature requests and bug reports, please email 
+//      sanfilippo.dario at gmail dot com.
+// =============================================================================
+
 import("stdfaust.lib");
 
+declare name "Concatenative Granular Processing";
+declare author "Dario Sanfilippo";
+declare copyright "Copyright (C) 2021 Dario Sanfilippo 
+    <sanfilippo.dario@gmail.com>";
+declare version "1.0";
+declare license "MIT license";
+
+// -----------------------------------------------------------------------------
+//      Lagrange interpolation
+// -----------------------------------------------------------------------------
 lagrange_h(N, x_vals, idx) = par(n, N + 1, prod(k, N + 1, f(n, k)))
     with {
         vals(i) = ba.take(i + 1, x_vals);
         f(n, k) = ((idx - vals(k)) * (n != k) + (n == k)) / 
             ((vals(n) - vals(k)) + (n == k));
     };
-
 lagrangeN(N, x_vals, idx) = lagrange_h(N, x_vals, idx) ,
                             si.bus(N + 1) : si.dot(N + 1);
+// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+//      Fractional index tables
+// -----------------------------------------------------------------------------
 frwtable(N, S, init, w_idx, x, r_idx) =
     lagrangeN(N, x_vals, f_idx, par(i, N + 1, y_vals(i_idx - int(N / 2) + i)))
     with {
@@ -18,20 +52,68 @@ frwtable(N, S, init, w_idx, x, r_idx) =
         f_idx = ma.frac(r_idx) + int(N / 2);
         i_idx = int(r_idx);
     };
+// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+//      Buffer definitions
+// -----------------------------------------------------------------------------
 ibuffer(r_idx, x) = rwtable(size, .0, index, x, int(ma.modulo(r_idx, size))); 
 fbuffer(r_idx, x) = frwtable(5, size, .0, index, x, r_idx);
+// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+//      Maths
+// -----------------------------------------------------------------------------
 zc(x) = x * x' < 0; 
 up(x) = diff(x) > 0; 
 down(x) = diff(x) < 0; 
 diff(x) = x - x'; 
+// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+//      One-pole lowpass
+// -----------------------------------------------------------------------------
 lp1p(cf, x) = fi.pole(b, x * (1 - b))
     with {
         b = exp(ma.PI * -cf);
     };
+// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+//      Time transposition processing
+// -----------------------------------------------------------------------------
+pos(x) = os.phasor(size, t_fact) + buff_pos + pos_async
+    with {
+        pos_async = lp1p(t_cf, x) * t_depth;
+    };
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+//      Pitch transposition processing
+// -----------------------------------------------------------------------------
+ptc(x) = p_fact + ptc_async <: 
+    ba.if(<(0), max(-16, min(-1 / 16)), min(16, max(1 / 16)))
+    with {
+        ptc_async = lp1p(p_cf, x) * p_depth;
+    };
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+//      Input processing (live/looped buffer)
+// -----------------------------------------------------------------------------
+input(x) = +(x * (1 - r)) ~ (de.delay(size - 1, size - 1) * r);
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+//      Buffer size and writing pointer definition
+// -----------------------------------------------------------------------------
+size = 192000 * 10; 
+index = ba.period(size);
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+//      Concatenative granulation
+// -----------------------------------------------------------------------------
 CGP(len, pos, pitch, x) =   loop ~ 
                             _ : ! , 
                                 _
@@ -73,7 +155,7 @@ CGP(len, pos, pitch, x) =   loop ~
                                 grain)
                     with {
                         N = 5;
-                        L = int(hslider("Interpolation length (samples)", 16, 4, 64, 1));
+                        L = int(hslider("[00]Interpolation length (samples)", 16, 4, 64, 1));
                         halfp = (N + 1) / 2;
                         x_vals = par(i, N + 1, (i - halfp) * 
                             (i < halfp) + (i + L - halfp) * (i >= halfp));
@@ -93,10 +175,11 @@ CGP(len, pos, pitch, x) =   loop ~
                 
             };
     };
+// -----------------------------------------------------------------------------
 
-size = 192000 * 10; 
-index = ba.period(size);
-
+// -----------------------------------------------------------------------------
+//      GUI parameters
+// -----------------------------------------------------------------------------
 len = hslider("[01]Grain length (s)", .1, .001, 1, .000001) * ma.SR; 
 buff_pos = hslider("[02]Buffer position (s)", 0, 0, 10, .000001) * ma.SR;
 t_fact = hslider("[03]Time transposition", 1, -16, 16, .000001) * 
@@ -108,24 +191,17 @@ p_cf = hslider("[07]Pitch async degree", 0, 0, 1, .000001);
 p_depth = hslider("[08]Pitch async depth", 0, 0, 1000, .000001);
 r = checkbox("[09]Freeze buffer");
 vol = hslider("[10]Volume", 0, 0, 1, .000001);
+// -----------------------------------------------------------------------------
 
-pos(x) = os.phasor(size, t_fact) + buff_pos + pos_async
-    with {
-        pos_async = lp1p(t_cf, x) * t_depth;
-    };
-
-ptc(x) = p_fact + ptc_async <: 
-    ba.if(<(0), max(-16, min(-1 / 16)), min(16, max(1 / 16)))
-    with {
-        ptc_async = lp1p(p_cf, x) * p_depth;
-    };
-
-input(x) = +(x * (1 - r)) ~ (de.delay(size - 1, size - 1) * r);
-
-process(x1, x2) =   (loop1 ~ _) * vol , 
-                    (loop2 ~ _) * vol
+// -----------------------------------------------------------------------------
+//      Main process
+// -----------------------------------------------------------------------------
+process(x1, x2) =   (   loop1 ~ 
+                        _) * vol , 
+                    (   loop2 ~ 
+                        _) * vol
     with {
         loop1(fb) = CGP(len, pos(fb), ptc(fb), input(x1));
         loop2(fb) = CGP(len, pos(fb), ptc(fb), input(x2));
     };
-
+// -----------------------------------------------------------------------------
