@@ -112,7 +112,7 @@ index = ba.period(size);
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
-//      Concatenative granulation
+//      Concatenative granulation function
 // -----------------------------------------------------------------------------
 CGP(len, pos, pitch, x) =   loop ~ 
                             _ : ! , 
@@ -148,14 +148,12 @@ CGP(len, pos, pitch, x) =   loop ~
                                                         min(0 - ma.EPSILON, den),
                                                         max(ma.EPSILON, den));
                             };
-
                     };
                 Lgrain = ba.if( lline < L, 
                                 lagrangeN(N, x_vals, lline, y_vals), 
                                 grain)
                     with {
                         N = 5;
-                        L = int(hslider("[00]Interpolation length (samples)", 16, 4, 64, 1));
                         halfp = (N + 1) / 2;
                         x_vals = par(i, N + 1, (i - halfp) * 
                             (i < halfp) + (i + L - halfp) * (i >= halfp));
@@ -169,10 +167,9 @@ CGP(len, pos, pitch, x) =   loop ~
                                     par(i, halfp, 
                                         fbuffer(offset + (L + i) * pitch_sah, x));
                             };
-                        lline = min(L, (+(1 - t)) ~ 
-                                *(1 - t));
+                        lline = min(L, +(1 - t)) ~ 
+                                *(1 - t);
                     };
-                
             };
     };
 // -----------------------------------------------------------------------------
@@ -180,6 +177,7 @@ CGP(len, pos, pitch, x) =   loop ~
 // -----------------------------------------------------------------------------
 //      GUI parameters
 // -----------------------------------------------------------------------------
+L = int(hslider("[00]Interpolation length (samples)", 16, 4, 64, 1));
 len = hslider("[01]Grain length (s)", .1, .001, 1, .000001) * ma.SR; 
 buff_pos = hslider("[02]Buffer position (s)", 0, 0, 10, .000001) * ma.SR;
 t_fact = hslider("[03]Time transposition", 1, -16, 16, .000001) * 
