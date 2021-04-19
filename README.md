@@ -1,28 +1,35 @@
-# Zero-crossing-synchronous granulator
-Faust implementation of zero-crossing-synchronous rectangular windowing for continuous streams of non-overlapping sonic fragments. The main characteristic of the study is to provide a multi-modal system that, depending on the parameters, can operate as a click-free looper, wavetable oscillator, or granulator.
+# Live concatenative granular processing
 
-The "Looped/Live" button switches between live and looped inputs. The granulator is looped if the button is unchecked, live otherwise.
+This algorithm addresses signal discontinuity and concatenation artefacts in real-time granular processing with rectangular windowing. By combining zero-crossing synchronicity, first-order derivative analysis, and Lagrange polynomials, we can generate streams of uncorrelated and non-overlapping sonic fragments with minimal low-order derivatives discontinuities. The resulting open-source algorithm, implemented in the Faust language, provides a versatile real-time software for dynamical looping, wavetable oscillation, and granulation with reduced artefacts due to rectangular windowing and no artefacts from overlap-add-to-one techniques commonly deployed in granular processing.
 
-The "Grain rate" parameter determines the number of sonic fragments per second or, conversely, the size of each fragment. Please note that the grain rate or size is only desirable: in most cases, the length of each segment is slightly longer as the beginning of the next grain is dependent on the zero-crossing occurrence in the previous grain. Depending on the grain rate, whether below or above the perceptual lower frequency threshold, the algorithm operates in the looping or wavetable oscillation regions. This also requires the time-stretching parameter to be set to zero. (See below.)
+# Parameters
 
-The "Pitch factor" parameter can be both positive or negative. Negative pitch factors result in reversed grains. It determines the playback speed of each grain.
+Interpolation length: length of the reconstructed segment at the junction through 5th-order Lagrange. Short lenghts may work best for high-frequency signals and vice versa.
 
-The "Pitch modulation" parameter creates an exponential curve in the delay shift, which in turn results in a pitch modulation for each grain. A constant pitch is given by a delay shift whose second derivative is zero. In this case, the parameter ranges from -1 to 1, mapped over the range from 1/16 to 16, which is the exponent that shapes the line segment performing the delay shift. Positive values of the parameter result in a positive second derivative, or a function curving up creating a raising pitch. Negative values of the parameter behave in the opposite way.
+Grain length: determines the approximate length of each grain in seconds, consequently setting the grain rate (1 / grain_length). Note that the grain length is approximate as the triggering of each grain is dependent on the zero-crossing occurrences in the output of the system.
 
-The "Time factor" parameter determines the speed and direction for the exploration of the buffer. This parameter, provided that the position modulation parameters are inactive, is the time-stretching parameter. Particularly, when the parameter is zero, the algorithm operates as a looper or wavetable oscillator.
+Buffer position: offset to move the granulators reading head along the buffer, where 0 is the left-most area, and 1 is the right-most area. Positions 0 and 1 are equivalent as the buffer is circular. This parameter is particularly useful when using the granulator with a zero-factor time transposition, that is, as a wavetable oscillator to explore different waveforms.
 
-The "Buffer region" parameter can be used to explore different regions of the buffer when the time-stretching factor is set to zero, or it can be used for manual time-stretching.
+Time transposition: time transposition factor; negative factors correspond to reversed buffer indexing.
 
-The "Position self-modulation depth" sets the magnitude of the perturbation over the curve that determines the time factor. Specifically, the output amplitude of the system is sent back, expanded through this parameter, wrapped around, and summed to the time factor function. The nonlinear iteration process can be used to achieve chaotic beahviours.
+Time async degree: degree of asynchronicity in the recursive chaotic factors variations.
 
-Lastly, the "Position self-modulation rate" lowpasses the output of the granulator before being processed in the position self-modulation depth parameter. By changing the rate of this signal, we can smoothly transition between correlated to uncorrelated positions in the buffer to move from time-stratching-like behaviours to sonic dusts.
+Time async depth: depth of the oscillations in the recursive chaotic factors variations.
+
+Pitch transposition: pitch transposition factor; negative factors correspond to reversed grain playback.
+
+Pitch async degree: degree of asynchronicity in the recursive chaotic factors variations.
+
+Pitch async depth: depth of the oscillations in the recursive chaotic factors variations.
+
+Freeze buffer: check this box to prevent the buffer from being updated with new input signals.
+
+Volume: linear scaling factor.
 
 # Compilation
 
-For OSX:
+Please compile using double-precision.
 
->> faust2caqt -double zero-crossing_granulator.dsp
+# Optimality
 
-For Linux through the Jack Server:
-
->> faust2jaqt -double zero-crossing_granulator.dsp
+For best results, run the software at high sample rates, i.e., 192 kHz.
