@@ -33,3 +33,7 @@ Please compile using double-precision.
 # Optimality
 
 For best results, run the software at high sample rates, i.e., 192 kHz.
+
+# Acknowledgements
+
+I want to thank Julian Parker for his valuable help in improving this algorithm.
