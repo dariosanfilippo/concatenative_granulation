@@ -13,10 +13,13 @@
 // artefacts. This technique deploys zeroth and first-order derivative
 // analysis with Lagrange polynomoials for a smooth transition between grains.
 //
-// Copyright (C) Dario Sanfilippo 2021.
+// For best results, the algorithm should run at 192 kHz sample rate and
+// it should be compiled in double-precision.
 // 
 // For feature requests and bug reports, please email 
 //      sanfilippo.dario at gmail dot com.
+//
+// Copyright (C) Dario Sanfilippo 2021.
 // =============================================================================
 
 import("stdfaust.lib");
@@ -101,7 +104,8 @@ ptc(x) = p_fact + ptc_async <:
 // -----------------------------------------------------------------------------
 //      Input processing for live or looped buffer
 // -----------------------------------------------------------------------------
-input(x) = +(x * (1 - r)) ~ (de.delay(size - 1, size - 1) * r);
+input(x) =  +(x * (1 - r)) ~ 
+            (de.delay(size - 1, size - 1) * r);
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
@@ -118,9 +122,12 @@ CGP(len, pos, pitch, x) =   loop ~
                             _ : ! , 
                                 _
     with {
-        loop(y) = grain , Lgrain
+        loop(y) =   grain , 
+                    Lgrain
             with {
+                // Non-interpolated output
                 grain = fbuffer(offset + line, x);
+                // Trigger function
                 t = loop ~ 
                     _ 
                     with {
@@ -128,8 +135,11 @@ CGP(len, pos, pitch, x) =   loop ~
                             (fi.pole(1 - reset, 1) >= 
                                 ba.sAndH(1 - 1' + reset, len)) & zc(y);
                     };
+                // Trigger-locked pitch variations
                 pitch_sah = ba.sAndH(1 - 1' + t, pitch);
-                line = fi.pole(1 - t, 1 - t) * pitch_sah; 
+                // Pitch transposition function
+                line = fi.pole(1 - t, 1 - t) * pitch_sah;
+                // Grain position processing
                 offset = ba.sAndH(t, zc_sel + corr) 
                     with {
                         dir = ma.signum(pitch_sah);
@@ -149,14 +159,17 @@ CGP(len, pos, pitch, x) =   loop ~
                                                         max(ma.EPSILON, den));
                             };
                     };
+                // Switching section (interpolation)
                 Lgrain = ba.if( lline < L, 
                                 lagrangeN(N, x_vals, lline, y_vals), 
                                 grain)
                     with {
                         N = 5;
                         halfp = (N + 1) / 2;
+                        // X-axis spacing
                         x_vals = par(i, N + 1, (i - halfp) * 
                             (i < halfp) + (i + L - halfp) * (i >= halfp));
+                        // Interpolation points
                         y_vals =    l_points , 
                                     r_points
                             with {
@@ -167,6 +180,7 @@ CGP(len, pos, pitch, x) =   loop ~
                                     par(i, halfp, 
                                         fbuffer(offset + (L + i) * pitch_sah, x));
                             };
+                        // Interpolation index
                         lline = min(L, +(1 - t)) ~ 
                                 *(1 - t);
                     };
@@ -179,12 +193,12 @@ CGP(len, pos, pitch, x) =   loop ~
 // -----------------------------------------------------------------------------
 L = int(hslider("[00]Interpolation length (samples)", 16, 4, 64, 1));
 len = hslider("[01]Grain length (s)", .1, .001, 1, .000001) * ma.SR; 
-buff_pos = hslider("[02]Buffer position (s)", 0, 0, 10, .000001) * ma.SR;
+buff_pos = hslider("[02]Buffer position", 0, 0, 1, .000001) * size;
 t_fact = hslider("[03]Time transposition", 1, -16, 16, .000001) * 
     (ma.SR / size);
 t_cf = hslider("[04]Time async degree", 0, 0, 1, .000001);
 t_depth = hslider("[05]Time async depth", 0, 0, size, .000001);
-p_fact = hslider("[05]Pitch transposition", 1, -16, 16, .000001);
+p_fact = hslider("[06]Pitch transposition", 1, -16, 16, .000001);
 p_cf = hslider("[07]Pitch async degree", 0, 0, 1, .000001);
 p_depth = hslider("[08]Pitch async depth", 0, 0, 1000, .000001);
 r = checkbox("[09]Freeze buffer");
